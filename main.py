@@ -1,6 +1,7 @@
 # import os
 # os.environ["SDL_VIDEO_X11_FORCE_EGL"] = "1"
 
+
 import pygame
 from pygame.locals import *
 from OpenGL.GL import *
@@ -18,10 +19,12 @@ out vec3 fragColor;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform vec3 pos;
 
 void main() {
     fragColor = color;
-    gl_Position = projection * view * model * vec4(position, 1.0);
+    vec3 loc = pos + position;
+    gl_Position = projection * view * model * vec4(loc, 1.0);
 }
 """
 
@@ -73,6 +76,8 @@ def create_shader_program(vertex_shader_source, fragment_shader_source):
     
     return program
 
+objects = []
+
 def init_pygame_opengl():
     pygame.init()
     pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
@@ -106,24 +111,114 @@ def main():
     model_loc = glGetUniformLocation(shader_program, "model")
     view_loc = glGetUniformLocation(shader_program, "view")
     proj_loc = glGetUniformLocation(shader_program, "projection")
+    pos_loc = glGetUniformLocation(shader_program, "pos")
+
+    def render_objects():
+        for i, obj in enumerate(objects):
+            print(i, i+1)
+
+            glUniform3f(pos_loc, obj[0], obj[1]*(i+1), obj[2])
+
+            # Draw the pokeball
+            glBindVertexArray(pokeball_vao)
+            glDrawArrays(GL_TRIANGLES, 0, 72)  # 72 vertices for 24 triangles (12 faces total)
+            glBindVertexArray(0)
 
     # Create transformation matrices
     projection = glm.perspective(glm.radians(45.0), 800.0 / 600.0, 0.1, 100.0)
     
     # Camera position and orientation
     camera_pos = glm.vec3(0.0, 0.0, 5.0)
-    camera_target = glm.vec3(0.0, 0.0, 0.0)
+    camera_front = glm.vec3(0.0, 0.0, -1.0)  # Direction camera is looking
     camera_up = glm.vec3(0.0, 1.0, 0.0)
-    view = glm.lookAt(camera_pos, camera_target, camera_up)
-
+    camera_right = glm.normalize(glm.cross(camera_front, camera_up))
+    
+    # Camera speed and controls
+    camera_speed = 0.1
+    yaw = -90.0  # Initial yaw (facing -Z direction)
+    pitch = 0.0
+    
+    # Mouse control variables
+    mouse_sensitivity = 0.3
+    last_mouse_x, last_mouse_y = 400, 300  # Center of the screen
+    first_mouse = True
+    mouse_look_enabled = False
+    
+    # Hide the cursor for mouse look
+    # pygame.mouse.set_visible(False)
+    # pygame.event.set_grab(True)
+    
     rotation = 0.0
+    clock = pygame.time.Clock()
     
     # Main loop
     running = True
     while running:
+        dt = clock.tick(60) / 1000.0  # Delta time in seconds
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_d:
+                    objects.append((0.0, 1.0, 0.0))
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    camera_pos += camera_speed * camera_front
+                if event.key == pygame.K_DOWN:
+                    camera_pos -= camera_speed * camera_front
+                if event.key == pygame.K_LEFT:  # Left
+                    camera_pos -= camera_right * camera_speed
+                if event.key == pygame.K_RIGHT:  # Right
+                    camera_pos += camera_right * camera_speed
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+                elif event.key == pygame.K_m:  # Toggle mouse look
+                    mouse_look_enabled = not mouse_look_enabled
+                    if mouse_look_enabled:
+                        pygame.mouse.set_visible(False)
+                        pygame.event.set_grab(True)
+                    else:
+                        pygame.mouse.set_visible(True)
+                        pygame.event.set_grab(False)
+            
+            # Mouse movement for camera rotation
+            elif event.type == pygame.MOUSEMOTION and mouse_look_enabled:
+                x, y = event.pos
+                
+                if first_mouse:
+                    last_mouse_x, last_mouse_y = x, y
+                    first_mouse = False
+                
+                x_offset = x - last_mouse_x
+                # Reversed y_offset for natural control (moving mouse up looks up)
+                y_offset = last_mouse_y - y
+                last_mouse_x, last_mouse_y = x, y
+                
+                x_offset *= mouse_sensitivity
+                y_offset *= mouse_sensitivity
+                
+                yaw += x_offset
+                pitch += y_offset
+                
+                # Limit pitch to avoid camera flipping
+                if pitch > 89.0:
+                    pitch = 89.0
+                if pitch < -89.0:
+                    pitch = -89.0
+                
+                # Calculate new front vector
+                direction = glm.vec3()
+                direction.x = glm.cos(glm.radians(yaw)) * glm.cos(glm.radians(pitch))
+                direction.y = glm.sin(glm.radians(pitch))
+                direction.z = glm.sin(glm.radians(yaw)) * glm.cos(glm.radians(pitch))
+                camera_front = glm.normalize(direction)
+                # Update right and up vectors
+                camera_right = glm.normalize(glm.cross(camera_front, glm.vec3(0.0, 1.0, 0.0)))
+                camera_up = glm.normalize(glm.cross(camera_right, camera_front))
+                    
+        # Update view matrix
+        view = glm.lookAt(camera_pos, camera_pos + camera_front, camera_up)
         
         # Clear the screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -132,7 +227,7 @@ def main():
         # Use shader program
         glUseProgram(shader_program)
 
-        # Update rotation
+        # Update rotation for the model
         rotation += 0.01
         model = glm.rotate(glm.mat4(1.0), rotation, glm.vec3(0, 1, 0))
 
@@ -140,11 +235,14 @@ def main():
         glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm.value_ptr(projection))
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm.value_ptr(model))
+        glUniform3f(pos_loc, 0.0, 0.0, 0.0)
 
         # Draw the pokeball
         glBindVertexArray(pokeball_vao)
         glDrawArrays(GL_TRIANGLES, 0, 72)  # 72 vertices for 24 triangles (12 faces total)
         glBindVertexArray(0)
+
+        render_objects()
 
         # Draw the button
         glBindVertexArray(button_vao)
