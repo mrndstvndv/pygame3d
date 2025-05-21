@@ -52,8 +52,8 @@ def main():
     # Create pokeball VAO
     pokeball_vao = create_pokeball()
     coin = Object()
-    coin.load_obj("./assets/coin.obj")
-    coin.load_texture("./assets/texture.png")
+    coin.load_obj("./assets/bench.obj")
+    coin.load_texture("./assets/bench.png")
 
     button_vao = create_button()
 
@@ -86,7 +86,7 @@ def main():
     camera_right = glm.normalize(glm.cross(camera_front, camera_up))
 
     # Camera speed and controls
-    camera_speed = 0.1
+    camera_speed = 0.5
     yaw = -90.0  # Initial yaw (facing -Z direction)
     pitch = 0.0
 
@@ -108,6 +108,17 @@ def main():
     while running:
         dt = clock.tick(60) / 1000.0  # Delta time in seconds
 
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_w]:
+            camera_pos += camera_speed * camera_front
+        if keys[pygame.K_s]:
+            camera_pos -= camera_speed * camera_front
+        if keys[pygame.K_a]:
+            camera_pos -= camera_right * camera_speed
+        if keys[pygame.K_d]:
+            camera_pos += camera_right * camera_speed
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -115,14 +126,6 @@ def main():
                 if event.key == pygame.K_d:
                     objects.append((0.0, 1.0, 0.0))
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    camera_pos += camera_speed * camera_front
-                if event.key == pygame.K_DOWN:
-                    camera_pos -= camera_speed * camera_front
-                if event.key == pygame.K_LEFT:  # Left
-                    camera_pos -= camera_right * camera_speed
-                if event.key == pygame.K_RIGHT:  # Right
-                    camera_pos += camera_right * camera_speed
                 if event.key == pygame.K_ESCAPE:
                     running = False
                 elif event.key == pygame.K_m:  # Toggle mouse look
@@ -189,26 +192,9 @@ def main():
         glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm.value_ptr(projection))
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm.value_ptr(model))
-        glUniform3f(pos_loc, 0.0, 0.0, 0.0)
 
-        # Draw the pokeball
-        glBindVertexArray(pokeball_vao)
-        glDrawArrays(
-            GL_TRIANGLES, 0, 72
-        )  # 72 vertices for 24 triangles (12 faces total)
-        glBindVertexArray(0)
-
-        render_objects()
-
-        # Draw the button
-        glBindVertexArray(button_vao)
-        glDrawArrays(GL_TRIANGLES, 0, 36)  # 36 vertices for 12 triangles (6 faces)
-        glBindVertexArray(0)
-
-        # Set uniforms
+        # draw coin
         glUniform3f(pos_loc, 0.0, -1.0, 0.0)
-
-        # Draw the coin
         coin.draw()
 
         # Swap buffers
