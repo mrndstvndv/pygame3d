@@ -1,6 +1,14 @@
 # import os
 # os.environ["SDL_VIDEO_X11_FORCE_EGL"] = "1"
 
+import os
+
+from objloader import Object
+
+if os.environ.get("XDG_SESSION_TYPE") == "wayland":
+    # aparrently this is needed for wayland, need to test
+    os.environ["SDL_VIDEODRIVER"] = "wayland"
+
 
 import pygame
 from pygame.locals import *
@@ -9,93 +17,31 @@ from OpenGL.GL import shaders
 from objects import create_button, create_square, create_pokeball
 import numpy as np
 from pyglm import glm
-
-# Shader source code
-VERTEX_SHADER = """
-#version 330
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec3 color;
-out vec3 fragColor;
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-uniform vec3 pos;
-
-void main() {
-    fragColor = color;
-    vec3 loc = pos + position;
-    gl_Position = projection * view * model * vec4(loc, 1.0);
-}
-"""
-
-FRAGMENT_SHADER = """
-#version 330
-in vec3 fragColor;
-out vec4 outColor;
-
-void main() {
-    outColor = vec4(fragColor, 1.0);
-}
-"""
-
-def compile_shader(source, shader_type):
-    shader = glCreateShader(shader_type)
-    glShaderSource(shader, source)
-    glCompileShader(shader)
-    
-    # Check compilation status
-    if not glGetShaderiv(shader, GL_COMPILE_STATUS):
-        error = glGetShaderInfoLog(shader).decode()
-        print(f"Shader compilation error: {error}")
-        glDeleteShader(shader)
-        return None
-    return shader
-
-def create_shader_program(vertex_shader_source, fragment_shader_source):
-    vertex_shader = compile_shader(vertex_shader_source, GL_VERTEX_SHADER)
-    fragment_shader = compile_shader(fragment_shader_source, GL_FRAGMENT_SHADER)
-    
-    if not vertex_shader or not fragment_shader:
-        return None
-    
-    program = glCreateProgram()
-    glAttachShader(program, vertex_shader)
-    glAttachShader(program, fragment_shader)
-    glLinkProgram(program)
-    
-    # Check linking status
-    if not glGetProgramiv(program, GL_LINK_STATUS):
-        error = glGetProgramInfoLog(program).decode()
-        print(f"Shader program linking error: {error}")
-        glDeleteProgram(program)
-        return None
-    
-    # Clean up individual shaders
-    glDeleteShader(vertex_shader)
-    glDeleteShader(fragment_shader)
-    
-    return program
+from shaders import create_shader_program
 
 objects = []
+
 
 def init_pygame_opengl():
     pygame.init()
     pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
     pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 0)
 
-    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE)
+    pygame.display.gl_set_attribute(
+        pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE
+    )
 
-    
     # Create a window with OpenGL context
     width, height = 800, 600
     pygame.display.set_mode((width, height), DOUBLEBUF | OPENGL)
     pygame.display.set_caption("OpenGL with Shaders")
 
+
 def main():
     init_pygame_opengl()
-    
+
     # Create and use shader program
-    shader_program = create_shader_program(VERTEX_SHADER, FRAGMENT_SHADER)
+    shader_program = create_shader_program()
     if not shader_program:
         print("Failed to create shader program")
         return
@@ -105,6 +51,10 @@ def main():
 
     # Create pokeball VAO
     pokeball_vao = create_pokeball()
+    coin = Object()
+    coin.load_obj("./assets/coin.obj")
+    coin.load_texture("./assets/texture.png")
+
     button_vao = create_button()
 
     # Get uniform locations
@@ -115,47 +65,49 @@ def main():
 
     def render_objects():
         for i, obj in enumerate(objects):
-            print(i, i+1)
+            print(i, i + 1)
 
-            glUniform3f(pos_loc, obj[0], obj[1]*(i+1), obj[2])
+            glUniform3f(pos_loc, obj[0], obj[1] * (i + 1), obj[2])
 
             # Draw the pokeball
             glBindVertexArray(pokeball_vao)
-            glDrawArrays(GL_TRIANGLES, 0, 72)  # 72 vertices for 24 triangles (12 faces total)
+            glDrawArrays(
+                GL_TRIANGLES, 0, 72
+            )  # 72 vertices for 24 triangles (12 faces total)
             glBindVertexArray(0)
 
     # Create transformation matrices
     projection = glm.perspective(glm.radians(45.0), 800.0 / 600.0, 0.1, 100.0)
-    
+
     # Camera position and orientation
     camera_pos = glm.vec3(0.0, 0.0, 5.0)
     camera_front = glm.vec3(0.0, 0.0, -1.0)  # Direction camera is looking
     camera_up = glm.vec3(0.0, 1.0, 0.0)
     camera_right = glm.normalize(glm.cross(camera_front, camera_up))
-    
+
     # Camera speed and controls
     camera_speed = 0.1
     yaw = -90.0  # Initial yaw (facing -Z direction)
     pitch = 0.0
-    
+
     # Mouse control variables
     mouse_sensitivity = 0.3
     last_mouse_x, last_mouse_y = 400, 300  # Center of the screen
     first_mouse = True
     mouse_look_enabled = False
-    
+
     # Hide the cursor for mouse look
     # pygame.mouse.set_visible(False)
     # pygame.event.set_grab(True)
-    
+
     rotation = 0.0
     clock = pygame.time.Clock()
-    
+
     # Main loop
     running = True
     while running:
         dt = clock.tick(60) / 1000.0  # Delta time in seconds
-        
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -181,32 +133,32 @@ def main():
                     else:
                         pygame.mouse.set_visible(True)
                         pygame.event.set_grab(False)
-            
+
             # Mouse movement for camera rotation
             elif event.type == pygame.MOUSEMOTION and mouse_look_enabled:
                 x, y = event.pos
-                
+
                 if first_mouse:
                     last_mouse_x, last_mouse_y = x, y
                     first_mouse = False
-                
+
                 x_offset = x - last_mouse_x
                 # Reversed y_offset for natural control (moving mouse up looks up)
                 y_offset = last_mouse_y - y
                 last_mouse_x, last_mouse_y = x, y
-                
+
                 x_offset *= mouse_sensitivity
                 y_offset *= mouse_sensitivity
-                
+
                 yaw += x_offset
                 pitch += y_offset
-                
+
                 # Limit pitch to avoid camera flipping
                 if pitch > 89.0:
                     pitch = 89.0
                 if pitch < -89.0:
                     pitch = -89.0
-                
+
                 # Calculate new front vector
                 direction = glm.vec3()
                 direction.x = glm.cos(glm.radians(yaw)) * glm.cos(glm.radians(pitch))
@@ -214,21 +166,23 @@ def main():
                 direction.z = glm.sin(glm.radians(yaw)) * glm.cos(glm.radians(pitch))
                 camera_front = glm.normalize(direction)
                 # Update right and up vectors
-                camera_right = glm.normalize(glm.cross(camera_front, glm.vec3(0.0, 1.0, 0.0)))
+                camera_right = glm.normalize(
+                    glm.cross(camera_front, glm.vec3(0.0, 1.0, 0.0))
+                )
                 camera_up = glm.normalize(glm.cross(camera_right, camera_front))
-                    
+
         # Update view matrix
         view = glm.lookAt(camera_pos, camera_pos + camera_front, camera_up)
-        
+
         # Clear the screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glClearColor(0.2, 0.3, 0.3, 1.0)
-        
+
         # Use shader program
         glUseProgram(shader_program)
 
         # Update rotation for the model
-        rotation += 0.01
+        rotation += 0.01 * dt * 60
         model = glm.rotate(glm.mat4(1.0), rotation, glm.vec3(0, 1, 0))
 
         # Set uniforms
@@ -239,7 +193,9 @@ def main():
 
         # Draw the pokeball
         glBindVertexArray(pokeball_vao)
-        glDrawArrays(GL_TRIANGLES, 0, 72)  # 72 vertices for 24 triangles (12 faces total)
+        glDrawArrays(
+            GL_TRIANGLES, 0, 72
+        )  # 72 vertices for 24 triangles (12 faces total)
         glBindVertexArray(0)
 
         render_objects()
@@ -248,13 +204,20 @@ def main():
         glBindVertexArray(button_vao)
         glDrawArrays(GL_TRIANGLES, 0, 36)  # 36 vertices for 12 triangles (6 faces)
         glBindVertexArray(0)
-        
+
+        # Set uniforms
+        glUniform3f(pos_loc, 0.0, -1.0, 0.0)
+
+        # Draw the coin
+        coin.draw()
+
         # Swap buffers
         pygame.display.flip()
-    
+
     # Cleanup
     glDeleteProgram(shader_program)
     pygame.quit()
+
 
 if __name__ == "__main__":
     main()
