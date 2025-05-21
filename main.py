@@ -108,6 +108,7 @@ def main():
     while running:
         dt = clock.tick(60) / 1000.0  # Delta time in seconds
 
+        print(camera_pos)
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
@@ -185,7 +186,7 @@ def main():
         glUseProgram(shader_program)
 
         # Update rotation for the model
-        rotation += 0.01 * dt * 60
+        # rotation += 0.01 * dt * 60
         model = glm.rotate(glm.mat4(1.0), rotation, glm.vec3(0, 1, 0))
 
         # Set uniforms
@@ -195,6 +196,10 @@ def main():
 
         # draw coin
         glUniform3f(pos_loc, 0.0, -1.0, 0.0)
+        coin.draw()
+
+        # draw coin
+        glUniform3f(pos_loc, 0.0, -1.0, 18.5)
         coin.draw()
 
         # Swap buffers

@@ -25,6 +25,7 @@ class Object:
 
         # Load image data
         image = pygame.image.load(filename)
+        image = pygame.transform.flip(image, False, True)  # Flip vertically, not horizontally
         image_data = pygame.image.tostring(image, "RGBA", True)
         width, height = image.get_size()
 
