@@ -13,9 +13,7 @@ if os.environ.get("XDG_SESSION_TYPE") == "wayland":
 import pygame
 from pygame.locals import *
 from OpenGL.GL import *
-from OpenGL.GL import shaders
-from objects import create_button, create_square, create_pokeball
-import numpy as np
+from objects import create_button, create_pokeball
 from pyglm import glm
 from shaders import create_shader_program
 
@@ -51,9 +49,9 @@ def main():
 
     # Create pokeball VAO
     pokeball_vao = create_pokeball()
-    coin = Object()
-    coin.load_obj("./assets/bench.obj")
-    coin.load_texture("./assets/bench.png")
+    coin = Object(flip_texture=False)
+    coin.load_obj("./assets/coin.obj")
+    coin.load_texture("./assets/texture.png")
 
     button_vao = create_button()
 
@@ -62,6 +60,13 @@ def main():
     view_loc = glGetUniformLocation(shader_program, "view")
     proj_loc = glGetUniformLocation(shader_program, "projection")
     pos_loc = glGetUniformLocation(shader_program, "pos")
+    light_pos_loc = glGetUniformLocation(shader_program, "lightPos")
+    light_color_loc = glGetUniformLocation(shader_program, "lightColor")
+    view_pos_loc = glGetUniformLocation(shader_program, "viewPos")
+
+    # Set light properties
+    light_pos = glm.vec3(2.0, 2.0, 2.0)  # Light position
+    light_color = glm.vec3(1.0, 1.0, 1.0)  # White light
 
     def render_objects():
         for i, obj in enumerate(objects):
@@ -86,7 +91,7 @@ def main():
     camera_right = glm.normalize(glm.cross(camera_front, camera_up))
 
     # Camera speed and controls
-    camera_speed = 0.5
+    camera_speed = 0.2
     yaw = -90.0  # Initial yaw (facing -Z direction)
     pitch = 0.0
 
@@ -108,7 +113,7 @@ def main():
     while running:
         dt = clock.tick(60) / 1000.0  # Delta time in seconds
 
-        print(camera_pos)
+        # print(camera_pos)
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
@@ -193,6 +198,11 @@ def main():
         glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm.value_ptr(projection))
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm.value_ptr(model))
+
+        # Set lighting uniforms
+        glUniform3f(light_pos_loc, light_pos.x, light_pos.y, light_pos.z)
+        glUniform3f(light_color_loc, light_color.x, light_color.y, light_color.z)
+        glUniform3f(view_pos_loc, camera_pos.x, camera_pos.y, camera_pos.z)
 
         # draw coin
         glUniform3f(pos_loc, 0.0, -1.0, 0.0)

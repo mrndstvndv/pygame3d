@@ -6,11 +6,12 @@ import pygame
 
 
 class Object:
-    def __init__(self):
+    def __init__(self, flip_texture=True):
         self.vertices = []
         self.indices = []
         self.face_shape = None
         self.vao = None
+        self.flip = flip_texture
         self.index_count = 0
 
     def load_texture(self, filename):
@@ -25,7 +26,10 @@ class Object:
 
         # Load image data
         image = pygame.image.load(filename)
-        image = pygame.transform.flip(image, False, True)  # Flip vertically, not horizontally
+        if self.flip:
+            image = pygame.transform.flip(
+                image, False, True
+            )  # Flip vertically, not horizontally
         image_data = pygame.image.tostring(image, "RGBA", True)
         width, height = image.get_size()
 
@@ -48,6 +52,7 @@ class Object:
     def load_obj(self, filename):
         _positions = []
         _texcoords = []
+        _normals = []
         unique_verts = {}
         self.vertices = []
         self.indices = []
@@ -60,6 +65,9 @@ class Object:
                 elif line.startswith("vt "):
                     parts = line.strip().split()
                     _texcoords.append(tuple(map(float, parts[1:3])))
+                elif line.startswith("vn "):
+                    parts = line.strip().split()
+                    _normals.append(tuple(map(float, parts[1:4])))
                 elif line.startswith("f "):
                     parts = line.strip().split()[1:]
 
@@ -75,17 +83,19 @@ class Object:
                         vals = part.split("/")
                         v_idx = int(vals[0]) - 1
                         vt_idx = int(vals[1]) - 1 if len(vals) > 1 and vals[1] else 0
+                        vn_idx = int(vals[2]) - 1 if len(vals) > 2 and vals[2] else 0
 
                         key = (v_idx, vt_idx)
                         if key not in unique_verts:
-                            unique_verts[key] = len(self.vertices) // 5
+                            unique_verts[key] = len(self.vertices) // 8
                             pos = _positions[v_idx]
                             tex = (
                                 _texcoords[vt_idx]
                                 if vt_idx < len(_texcoords)
                                 else (0.0, 0.0)
                             )
-                            self.vertices.extend(pos + tex)
+                            normal = _normals[vn_idx]  # Placeholder for normals
+                            self.vertices.extend(pos + tex + normal)
                         face_indices.append(unique_verts[key])
 
                     # Store indices directly
@@ -112,10 +122,13 @@ class Object:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
 
-        stride = 5 * ctypes.sizeof(ctypes.c_float)
+        stride = 8 * ctypes.sizeof(ctypes.c_float)
+
+        # Position attribute
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, ctypes.c_void_p(0))
 
+        # Texture attribute
         glEnableVertexAttribArray(1)
         glVertexAttribPointer(
             1,
@@ -124,6 +137,17 @@ class Object:
             GL_FALSE,
             stride,
             ctypes.c_void_p(3 * ctypes.sizeof(ctypes.c_float)),
+        )
+
+        # Normals attribute
+        glEnableVertexAttribArray(2)
+        glVertexAttribPointer(
+            2,
+            3,
+            GL_FLOAT,
+            GL_FALSE,
+            stride,
+            ctypes.c_void_p(5 * ctypes.sizeof(ctypes.c_float)),
         )
 
         glBindVertexArray(0)
