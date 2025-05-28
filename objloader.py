@@ -13,10 +13,13 @@ class Object:
         self.vao = None
         self.flip = flip_texture
         self.index_count = 0
+        self.texture_id = None
 
     def load_texture(self, filename):
         texture = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, texture)
+
+        self.texture_id = texture
 
         # Set texture parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
@@ -155,6 +158,8 @@ class Object:
         self.vao = vao
 
     def draw(self, texture_id=None):
+        if self.texture_id is not None:
+            glBindTexture(GL_TEXTURE_2D, self.texture_id)
         if texture_id is not None:
             glBindTexture(GL_TEXTURE_2D, texture_id)
         glBindVertexArray(self.vao)

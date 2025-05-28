@@ -53,6 +53,10 @@ def main():
     coin.load_obj("./assets/coin.obj")
     coin.load_texture("./assets/texture.png")
 
+    bench = Object()
+    bench.load_obj("./assets/bench.obj")
+    bench.load_texture("./assets/bench.png")
+
     button_vao = create_button()
 
     # Get uniform locations
@@ -208,9 +212,8 @@ def main():
         glUniform3f(pos_loc, 0.0, -1.0, 0.0)
         coin.draw()
 
-        # draw coin
-        glUniform3f(pos_loc, 0.0, -1.0, 18.5)
-        coin.draw()
+        glUniform3f(pos_loc, 0.0, 1.0, 0.0)
+        bench.draw()
 
         # Swap buffers
         pygame.display.flip()
