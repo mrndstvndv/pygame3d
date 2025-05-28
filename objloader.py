@@ -6,7 +6,7 @@ import pygame
 
 
 class Object:
-    def __init__(self, flip_texture=True):
+    def __init__(self, object: str, texture: str, flip_texture=True):
         self.vertices = []
         self.indices = []
         self.face_shape = None
@@ -14,6 +14,12 @@ class Object:
         self.flip = flip_texture
         self.index_count = 0
         self.texture_id = None
+
+        if object:
+            self.load_obj(object)
+
+        if texture:
+            self.texture_id = self.load_texture(texture)
 
     def load_texture(self, filename):
         texture = glGenTextures(1)
