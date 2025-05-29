@@ -74,7 +74,7 @@ def main():
     camera_right = glm.normalize(glm.cross(camera_front, camera_up))
 
     # Camera speed and controls
-    camera_speed = 0.2
+    camera_speed = 10
     yaw = -90.0  # Initial yaw (facing -Z direction)
     pitch = 0.0
 
@@ -90,13 +90,17 @@ def main():
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
-            camera_pos += camera_speed * camera_front
+            camera_pos += camera_speed * camera_front * dt
         if keys[pygame.K_s]:
-            camera_pos -= camera_speed * camera_front
+            camera_pos -= camera_speed * camera_front * dt
         if keys[pygame.K_a]:
-            yaw -= camera_speed * 10.0
+            camera_pos -= camera_right * camera_speed * dt
         if keys[pygame.K_d]:
-            yaw += camera_speed * 10.0
+            camera_pos += camera_right * camera_speed * dt
+        if keys[pygame.K_LEFT]:
+            yaw -= camera_speed * 10 * dt
+        if keys[pygame.K_RIGHT]:
+            yaw += camera_speed * 10 * dt
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
