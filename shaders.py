@@ -33,32 +33,51 @@ in vec3 FragPos;
 out vec4 FragColor;
 
 uniform sampler2D ourTexture;
-uniform vec3 lightPos;
-uniform vec3 lightColor;
 uniform vec3 viewPos;
 
-void main() {
-    // Ambient
-    float ambientStrength = 0.1;
-    vec3 ambient = ambientStrength * lightColor;
+// Multiple lights support
+#define MAX_LIGHTS 8
+uniform int numLights;
+uniform vec3 lightPositions[MAX_LIGHTS];
+uniform vec3 lightColors[MAX_LIGHTS];
+uniform float lightIntensities[MAX_LIGHTS];
 
+vec3 calculateLight(vec3 lightPos, vec3 lightColor, float intensity, vec3 norm, vec3 viewDir) {
+    // Calculate distance for attenuation
+    float distance = length(lightPos - FragPos);
+    float attenuation = intensity / (1.0 + 0.09 * distance + 0.032 * distance * distance);
+    
     // Diffuse 
-    vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(lightPos - FragPos);
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
-
+    vec3 diffuse = diff * lightColor * attenuation;
+    
     // Specular
     float specularStrength = 0.5;
-    vec3 viewDir = normalize(viewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * lightColor;
+    vec3 specular = specularStrength * spec * lightColor * attenuation;
+    
+    return diffuse + specular;
+}
 
-    // Combine results
+void main() {
+    // Ambient lighting (global)
+    float ambientStrength = 0.1;
+    vec3 ambient = ambientStrength * vec3(1.0, 1.0, 1.0);
+    
+    vec3 norm = normalize(Normal);
+    vec3 viewDir = normalize(viewPos - FragPos);
+    
+    // Calculate lighting from all light sources
+    vec3 result = ambient;
+    for(int i = 0; i < numLights && i < MAX_LIGHTS; i++) {
+        result += calculateLight(lightPositions[i], lightColors[i], lightIntensities[i], norm, viewDir);
+    }
+    
+    // Apply to texture
     vec4 texColor = texture(ourTexture, TexCoord);
-    vec3 result = (ambient + diffuse + specular) * texColor.rgb;
-    FragColor = vec4(result, texColor.a);
+    FragColor = vec4(result * texColor.rgb, texColor.a);
 }
 """
 

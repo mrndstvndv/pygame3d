@@ -81,34 +81,60 @@ class Object:
                     parts = line.strip().split()[1:]
 
                     if len(parts) == 3:
+                        # Triangle - process normally
                         self.face_shape = GL_TRIANGLES
+                        face_indices = []
+                        for part in parts:
+                            vals = part.split("/")
+                            v_idx = int(vals[0]) - 1
+                            vt_idx = int(vals[1]) - 1 if len(vals) > 1 and vals[1] else 0
+                            vn_idx = int(vals[2]) - 1 if len(vals) > 2 and vals[2] else 0
+
+                            key = (v_idx, vt_idx)
+                            if key not in unique_verts:
+                                unique_verts[key] = len(self.vertices) // 8
+                                pos = _positions[v_idx]
+                                tex = (
+                                    _texcoords[vt_idx]
+                                    if vt_idx < len(_texcoords)
+                                    else (0.0, 0.0)
+                                )
+                                normal = _normals[vn_idx]  # Placeholder for normals
+                                self.vertices.extend(pos + tex + normal)
+                            face_indices.append(unique_verts[key])
+
+                        # Store triangle indices
+                        self.indices.extend(face_indices)
+
                     elif len(parts) == 4:
+                        # Quad - convert to two triangles
                         self.face_shape = GL_QUADS
+                        quad_indices = []
+                        for part in parts:
+                            vals = part.split("/")
+                            v_idx = int(vals[0]) - 1
+                            vt_idx = int(vals[1]) - 1 if len(vals) > 1 and vals[1] else 0
+                            vn_idx = int(vals[2]) - 1 if len(vals) > 2 and vals[2] else 0
+
+                            key = (v_idx, vt_idx)
+                            if key not in unique_verts:
+                                unique_verts[key] = len(self.vertices) // 8
+                                pos = _positions[v_idx]
+                                tex = (
+                                    _texcoords[vt_idx]
+                                    if vt_idx < len(_texcoords)
+                                    else (0.0, 0.0)
+                                )
+                                normal = _normals[vn_idx]  # Placeholder for normals
+                                self.vertices.extend(pos + tex + normal)
+                            quad_indices.append(unique_verts[key])
+
+                        # Convert quad to two triangles (0,1,2) and (0,2,3)
+                        self.indices.extend([quad_indices[0], quad_indices[1], quad_indices[2]])
+                        self.indices.extend([quad_indices[0], quad_indices[2], quad_indices[3]])
+
                     else:
                         raise ValueError("Unsupported face format")
-
-                    face_indices = []
-                    for part in parts:
-                        vals = part.split("/")
-                        v_idx = int(vals[0]) - 1
-                        vt_idx = int(vals[1]) - 1 if len(vals) > 1 and vals[1] else 0
-                        vn_idx = int(vals[2]) - 1 if len(vals) > 2 and vals[2] else 0
-
-                        key = (v_idx, vt_idx)
-                        if key not in unique_verts:
-                            unique_verts[key] = len(self.vertices) // 8
-                            pos = _positions[v_idx]
-                            tex = (
-                                _texcoords[vt_idx]
-                                if vt_idx < len(_texcoords)
-                                else (0.0, 0.0)
-                            )
-                            normal = _normals[vn_idx]  # Placeholder for normals
-                            self.vertices.extend(pos + tex + normal)
-                        face_indices.append(unique_verts[key])
-
-                    # Store indices directly
-                    self.indices.extend(face_indices)
 
         print("Vertices:", self.vertices)
         print("Indices:", self.indices)
@@ -169,7 +195,7 @@ class Object:
         if texture_id is not None:
             glBindTexture(GL_TEXTURE_2D, texture_id)
         glBindVertexArray(self.vao)
-        glDrawElements(self.face_shape, self.index_count, GL_UNSIGNED_INT, None)
+        glDrawElements(GL_TRIANGLES, self.index_count, GL_UNSIGNED_INT, None)
         glBindVertexArray(0)
         if texture_id is not None:
             glBindTexture(GL_TEXTURE_2D, 0)

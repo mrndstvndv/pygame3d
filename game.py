@@ -1,17 +1,20 @@
 import glm
 from OpenGL.GL import *
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from objloader import Object
 
 
 @dataclass
 class GameContext:
     shader_program: any
+    entities: list["Entity"] = field(default_factory=list)
+
+    def remove_entity(self, entity: "Entity"):
+        self.entities.remove(entity)
 
     def __post_init__(self):
         # Get uniform locations once during initialization
         self.pos_loc = glGetUniformLocation(self.shader_program, "pos")
-
 
 class Entity:
     def __init__(
