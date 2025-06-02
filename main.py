@@ -33,6 +33,7 @@ def init_pygame_opengl():
     pygame.display.set_mode((width, height), DOUBLEBUF | OPENGL)
     pygame.display.set_caption("OpenGL with Shaders")
 
+
 def main():
     init_pygame_opengl()
 
@@ -50,7 +51,6 @@ def main():
     bench = Entity(game, "bench", Object("./assets/bench.obj", "./assets/bench.png"))
     wall = Entity(game, "wall", Object("./assets/wall.obj", "./assets/wall.png"))
 
-
     # Get uniform locations
     model_loc = glGetUniformLocation(shader_program, "model")
     view_loc = glGetUniformLocation(shader_program, "view")
@@ -59,16 +59,24 @@ def main():
 
     # Initialize lighting system
     light_manager = LightManager(shader_program)
-    
+
     # Add multiple light sources
     # Static light sources
-    light_manager.add_light(Light(position=(5.0, 5.0, 5.0), color=(1.0, 1.0, 1.0), intensity=2.0))  # Main overhead light
-    light_manager.add_light(Light(position=(-3.0, 2.0, 3.0), color=(1.0, 0.8, 0.6), intensity=1.5))  # Warm side light
-    light_manager.add_light(Light(position=(0.0, -1.0, -5.0), color=(0.6, 0.8, 1.0), intensity=1.0))  # Cool ground light
-    
+    light_manager.add_light(
+        Light(position=(5.0, 5.0, 5.0), color=(1.0, 1.0, 1.0), intensity=2.0)
+    )  # Main overhead light
+    light_manager.add_light(
+        Light(position=(-3.0, 2.0, 3.0), color=(1.0, 0.8, 0.6), intensity=1.5)
+    )  # Warm side light
+    light_manager.add_light(
+        Light(position=(0.0, -1.0, -5.0), color=(0.6, 0.8, 1.0), intensity=1.0)
+    )  # Cool ground light
+
     # Dynamic light that will follow the camera (like a flashlight)
     flashlight_index = len(light_manager.lights)
-    light_manager.add_light(Light(position=(0.0, 0.0, 0.0), color=(1.0, 1.0, 0.8), intensity=3.0))
+    light_manager.add_light(
+        Light(position=(0.0, 0.0, 0.0), color=(1.0, 1.0, 0.8), intensity=3.0)
+    )
 
     print("=== Multiple Light Sources Demo ===")
     print("Controls:")
@@ -76,7 +84,7 @@ def main():
     print("Arrow Keys - Look around")
     print("SPACE - Fire bullet")
     print("1 - Toggle overhead light")
-    print("2 - Toggle side light") 
+    print("2 - Toggle side light")
     print("3 - Toggle ground light")
     print("4 - Toggle flashlight")
     print("C - Cycle flashlight color")
@@ -99,6 +107,16 @@ def main():
 
     rotation = 0.0
     clock = pygame.time.Clock()
+
+    grid = [
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+    ]
 
     # Main loop
     running = True
@@ -129,8 +147,10 @@ def main():
                     running = False
                 if event.key == pygame.K_SPACE:
                     print("Bullet fired!")
-                    game.entities.append(Bullet(game, pos=glm.vec3(camera_pos), direction=direction))
-                
+                    game.entities.append(
+                        Bullet(game, pos=glm.vec3(camera_pos), direction=direction)
+                    )
+
                 # Light controls
                 if event.key == pygame.K_1:
                     # Toggle overhead light intensity
@@ -140,7 +160,7 @@ def main():
                     else:
                         light_manager.update_light_intensity(0, 2.0)
                         print("Overhead light ON")
-                
+
                 if event.key == pygame.K_2:
                     # Toggle side light intensity
                     if light_manager.lights[1].intensity > 0:
@@ -149,7 +169,7 @@ def main():
                     else:
                         light_manager.update_light_intensity(1, 1.5)
                         print("Side light ON")
-                
+
                 if event.key == pygame.K_3:
                     # Toggle ground light intensity
                     if light_manager.lights[2].intensity > 0:
@@ -158,7 +178,7 @@ def main():
                     else:
                         light_manager.update_light_intensity(2, 1.0)
                         print("Ground light ON")
-                
+
                 if event.key == pygame.K_4:
                     # Toggle flashlight intensity
                     if light_manager.lights[flashlight_index].intensity > 0:
@@ -167,21 +187,31 @@ def main():
                     else:
                         light_manager.update_light_intensity(flashlight_index, 3.0)
                         print("Flashlight ON")
-                
+
                 if event.key == pygame.K_c:
                     # Cycle flashlight color
                     current_color = light_manager.lights[flashlight_index].color
                     if current_color.x > 0.9:  # Currently white/warm
-                        light_manager.update_light_color(flashlight_index, (1.0, 0.3, 0.3))  # Red
+                        light_manager.update_light_color(
+                            flashlight_index, (1.0, 0.3, 0.3)
+                        )  # Red
                         print("Flashlight: RED")
-                    elif current_color.x > 0.9 and current_color.z < 0.5:  # Currently red
-                        light_manager.update_light_color(flashlight_index, (0.3, 1.0, 0.3))  # Green
+                    elif (
+                        current_color.x > 0.9 and current_color.z < 0.5
+                    ):  # Currently red
+                        light_manager.update_light_color(
+                            flashlight_index, (0.3, 1.0, 0.3)
+                        )  # Green
                         print("Flashlight: GREEN")
                     elif current_color.y > 0.9:  # Currently green
-                        light_manager.update_light_color(flashlight_index, (0.3, 0.3, 1.0))  # Blue
+                        light_manager.update_light_color(
+                            flashlight_index, (0.3, 0.3, 1.0)
+                        )  # Blue
                         print("Flashlight: BLUE")
                     else:  # Currently blue or other
-                        light_manager.update_light_color(flashlight_index, (1.0, 1.0, 0.8))  # White/warm
+                        light_manager.update_light_color(
+                            flashlight_index, (1.0, 1.0, 0.8)
+                        )  # White/warm
                         print("Flashlight: WHITE")
 
         # Limit pitch to avoid camera flipping
@@ -213,7 +243,7 @@ def main():
 
         # Update flashlight position to follow camera
         light_manager.update_light_position(flashlight_index, camera_pos)
-        
+
         # Update rotation for the model
         # rotation += 0.01 * dt * 60
         model = glm.rotate(glm.mat4(1.0), rotation, glm.vec3(0, 1, 0))
@@ -228,11 +258,50 @@ def main():
         glUniform3f(view_pos_loc, camera_pos.x, camera_pos.y, camera_pos.z)
 
         bench.draw()
-        wall.draw()
+
+        wall_count = 3
+        # for i in range(wall_count):
+        #     wall.position = glm.vec3((i * 1.6), 0, 0)
+        #     wall.draw()
+        #
+        # for i in range(wall_count):
+        #     model = glm.rotate(glm.mat4(1.0), 80.0, glm.vec3(0, 1, 0))
+        #     glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm.value_ptr(model))
+        #     wall.position = glm.vec3((i * 1.6), 0, 0)
+        # wall.draw()
 
         for entity in game.entities:
             entity.update(dt)
             entity.draw()
+
+        for i in range(len(grid)):
+            for j in range(len(grid[i])):
+                if grid[i][j] == 1:
+                    # Start with identity matrix
+                    wall_model = glm.mat4(1.0)
+
+                    # First translate to position
+                    wall_model = glm.translate(
+                        wall_model, glm.vec3(j * 1.6, 0, i * 1.6)
+                    )
+
+                    # Then apply rotation around the wall's local origin
+                    if i > 0 and i < len(grid) - 1:
+                        if grid[i - 1][j] == 1 and grid[i + 1][j] == 1:
+                            wall_model = glm.rotate(
+                                wall_model, glm.radians(90.0), glm.vec3(0, 1, 0)
+                            )
+
+                    # Set the model matrix uniform for this specific wall
+                    glUniformMatrix4fv(
+                        model_loc, 1, GL_FALSE, glm.value_ptr(wall_model)
+                    )
+
+                    # Draw the wall (no need to set position again as it's in the model matrix)
+                    wall.position = glm.vec3(
+                        0, 0, 0
+                    )  # Use origin since position is in model matrix
+                    wall.draw()
 
         # Swap buffers
         pygame.display.flip()
