@@ -10,6 +10,7 @@ class DungeonGenerator:
         self.max_room_size = 12
         self.max_rooms = 10
         self.rooms = []
+        self.spawn = (0, 0)
         self.grid = [[1 for _ in range(width)] for _ in range(height)]
 
     def generate_room(self):
@@ -20,6 +21,8 @@ class DungeonGenerator:
         return (x, y, width, height)
 
     def generate_dungeon(self):
+        first_room = True
+
         for i in range(self.max_rooms):
             room = self.generate_room()
 
@@ -27,6 +30,16 @@ class DungeonGenerator:
                 if len(self.rooms) > 0:
                     self.connect_rooms(self.rooms[-1], room)
                 self.rooms.append(room)
+
+        first_room = self.rooms[0]
+        # set spawn
+        spawn_x = first_room[0] + first_room[2] // 2
+        spawn_y = first_room[1] + first_room[3] // 2
+
+        self.clean_grid()
+
+        self.spawn = (spawn_x, spawn_y)
+        self.grid[spawn_y][spawn_x] = 2  # Set spawn point
 
 
     def clean_grid(self):

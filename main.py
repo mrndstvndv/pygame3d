@@ -107,7 +107,6 @@ def main():
     # Generate dungeon
     dungeon_generator = DungeonGenerator(width=60, height=50)
     dungeon_generator.generate_dungeon()
-    dungeon_generator.clean_grid()
 
     grid = dungeon_generator.grid
 
@@ -145,8 +144,12 @@ def main():
                     or j == len(row) - 1
                 ):
                     wall_vert_offsets.append((pos.x, pos.y, pos.z))
-                if cell == 2:
-                    camera_pos = glm.vec3(pos.x, 0.5, pos.z)
+
+            if cell == 2:
+                # Spawn point
+                pos = glm.vec3(pos.x, 0.0, pos.z)
+                bench.position = pos
+                camera_pos = glm.vec3(pos.x, 0.6, pos.z) 
 
             if cell == 0 or cell == 2 or cell == 1:
                 pos = glm.vec3(pos.x, 0.0, pos.z)
@@ -159,6 +162,8 @@ def main():
     wall_obj = Object("./assets/wall.obj", "./assets/wall.png", offsets=wall_offsets)
     wall_vert_obj = Object("./assets/wall_vert.obj", "./assets/wall.png", offsets=wall_vert_offsets)
     ground_obj = Object("./assets/ground.obj", "./assets/ground.png", offsets=ground_offsets)
+
+    display_roof = True
 
     # Main loop
     running = True
@@ -178,6 +183,14 @@ def main():
             yaw -= camera_speed * 10 * dt
         if keys[pygame.K_RIGHT]:
             yaw += camera_speed * 10 * dt
+        if keys[pygame.K_u]:
+            camera_pos += camera_up * camera_speed * dt
+        if keys[pygame.K_LSHIFT]:
+            camera_pos -= camera_up * camera_speed * dt
+        if keys[pygame.K_DOWN]:
+            pitch -= camera_speed * 10 * dt
+        if keys[pygame.K_UP]:
+            pitch += camera_speed * 10 * dt
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -190,6 +203,7 @@ def main():
                     game.entities.append(
                         Bullet(game, pos=glm.vec3(camera_pos), direction=direction)
                     )
+
 
                 # Light controls
                 if event.key == pygame.K_1:
@@ -209,6 +223,14 @@ def main():
                     else:
                         light_manager.update_light_intensity(1, 1.5)
                         print("Side light ON")
+
+                if event.key == pygame.K_r:
+                    # Toggle roof visibility
+                    display_roof = not display_roof
+                    if display_roof:
+                        print("Roof ON")
+                    else:
+                        print("Roof OFF")
 
                 if event.key == pygame.K_3:
                     # Toggle ground light intensity
@@ -287,7 +309,6 @@ def main():
         # Update rotation for the model
         # rotation += 0.01 * dt * 60
         model = glm.rotate(glm.mat4(1.0), rotation, glm.vec3(0, 1, 0))
-
         # Set uniforms
         glUniformMatrix4fv(proj_loc, 1, GL_FALSE, glm.value_ptr(projection))
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm.value_ptr(view))
@@ -301,49 +322,14 @@ def main():
             entity.update(dt)
             entity.draw()
 
-        roof_obj.draw()
+        if display_roof:
+            roof_obj.draw()
+
         ground_obj.draw()
         wall_obj.draw()
         wall_vert_obj.draw()
 
-        # # Draw the dungeon
-        # for i, row in enumerate(grid):
-        #     for j, cell in enumerate(row):
-        #         pos = glm.vec3(j * 1.6, 0, i * 1.6)
-        #         if cell == 1:
-        #             # horizontal wall if neighbor left/right or at top/bottom row
-        #             if (
-        #                 (j > 0 and row[j - 1] == 1)
-        #                 or (j < len(row) - 1 and row[j + 1] == 1)
-        #                 or i == 0
-        #                 or i == len(grid) - 1
-        #             ):
-        #                 wall.position = pos
-        #                 wall.rotation = 0.0
-        #                 wall.draw()
-        #             # vertical wall if neighbor above/below or at left/right column
-        #             if (
-        #                 (i > 0 and grid[i - 1][j] == 1)
-        #                 or (i < len(grid) - 1 and grid[i + 1][j] == 1)
-        #                 or j == 0
-        #                 or j == len(row) - 1
-        #             ):
-        #                 wall.position = pos
-        #                 wall.rotation = 90.0
-        #                 wall.draw()
-        #
-        #         if cell == 2:
-        #             # Draw bench at this position
-        #             bench.position = pos
-        #             bench.draw()
-        #
-        #         if cell == 0 or cell == 2 or cell == 1:
-        #             # Draw ground at this position
-        #             ground.position = glm.vec3(pos.x, -1.0, pos.z)
-        #             ground.draw()
-        #
-        #             roof.position = glm.vec3(pos.x, 2.6, pos.z)
-        #             roof.draw()
+        bench.draw()
 
         # Swap buffers
         pygame.display.flip()
