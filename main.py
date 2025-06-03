@@ -114,6 +114,11 @@ def main():
     roof_offsets = []
     ground_offsets = []
     wall_offsets = []
+    wall_vert_offsets = []
+
+    print("Dungeon grid:")
+    for row in grid:
+        print(" ".join(str(cell) for cell in row))
 
     # Draw the dungeon
     for i, row in enumerate(grid):
@@ -139,19 +144,20 @@ def main():
                     or j == 0
                     or j == len(row) - 1
                 ):
-                    wall_offsets.append((pos.x, pos.y, pos.z))
-                    # wall.rotation = 90.0
-                    # wall.draw()
+                    wall_vert_offsets.append((pos.x, pos.y, pos.z))
+                if cell == 2:
+                    camera_pos = glm.vec3(pos.x, 0.5, pos.z)
 
             if cell == 0 or cell == 2 or cell == 1:
                 pos = glm.vec3(pos.x, 0.0, pos.z)
-                roof_offsets.append((pos.x, 2.6, pos.z))
+                roof_offsets.append((pos.x, 2.5, pos.z))
 
                 ground_offsets.append((pos.x, -1.0, pos.z))
 
 
     roof_obj = Object("./assets/roof_flat.obj", "./assets/roof_flat.png", offsets=roof_offsets)
     wall_obj = Object("./assets/wall.obj", "./assets/wall.png", offsets=wall_offsets)
+    wall_vert_obj = Object("./assets/wall_vert.obj", "./assets/wall.png", offsets=wall_vert_offsets)
     ground_obj = Object("./assets/ground.obj", "./assets/ground.png", offsets=ground_offsets)
 
     # Main loop
@@ -298,6 +304,7 @@ def main():
         roof_obj.draw()
         ground_obj.draw()
         wall_obj.draw()
+        wall_vert_obj.draw()
 
         # # Draw the dungeon
         # for i, row in enumerate(grid):

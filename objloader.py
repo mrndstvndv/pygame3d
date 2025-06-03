@@ -149,8 +149,8 @@ class Object:
                     else:
                         raise ValueError("Unsupported face format")
 
-        print("Vertices:", self.vertices)
-        print("Indices:", self.indices)
+        # print("Vertices:", self.vertices)
+        # print("Indices:", self.indices)
         self._create_buffers()
 
     def _create_buffers(self):
