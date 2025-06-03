@@ -50,6 +50,8 @@ def main():
 
     bench = Entity(game, "bench", Object("./assets/bench.obj", "./assets/bench.png"))
     wall = Entity(game, "wall", Object("./assets/wall.obj", "./assets/wall.png"))
+    ground = Entity(game, "ground", Object("./assets/ground.obj", "./assets/ground.png"))
+    roof = Entity(game, "roof", Object("./assets/roof_flat.obj", "./assets/roof_flat.png"))
 
     # Get uniform locations
     model_loc = glGetUniformLocation(shader_program, "model")
@@ -62,15 +64,15 @@ def main():
 
     # Add multiple light sources
     # Static light sources
-    light_manager.add_light(
-        Light(position=(5.0, 5.0, 5.0), color=(1.0, 1.0, 1.0), intensity=2.0)
-    )  # Main overhead light
-    light_manager.add_light(
-        Light(position=(-3.0, 2.0, 3.0), color=(1.0, 0.8, 0.6), intensity=1.5)
-    )  # Warm side light
-    light_manager.add_light(
-        Light(position=(0.0, -1.0, -5.0), color=(0.6, 0.8, 1.0), intensity=1.0)
-    )  # Cool ground light
+    # light_manager.add_light(
+    #     Light(position=(5.0, 5.0, 5.0), color=(1.0, 1.0, 1.0), intensity=2.0)
+    # )  # Main overhead light
+    # light_manager.add_light(
+    #     Light(position=(-3.0, 2.0, 3.0), color=(1.0, 0.8, 0.6), intensity=1.5)
+    # )  # Warm side light
+    # light_manager.add_light(
+    #     Light(position=(0.0, -1.0, -5.0), color=(0.6, 0.8, 1.0), intensity=1.0)
+    # )  # Cool ground light
 
     # Dynamic light that will follow the camera (like a flashlight)
     flashlight_index = len(light_manager.lights)
@@ -95,7 +97,7 @@ def main():
     projection = glm.perspective(glm.radians(45.0), 800.0 / 600.0, 0.1, 100.0)
 
     # Camera position and orientation
-    camera_pos = glm.vec3(0.0, 0.0, 5.0)
+    camera_pos = glm.vec3(0.0, 0.5, 5.0)
     camera_front = glm.vec3(0.0, 0.0, -1.0)  # Direction camera is looking
     camera_up = glm.vec3(0.0, 1.0, 0.0)
     camera_right = glm.normalize(glm.cross(camera_front, camera_up))
@@ -109,22 +111,20 @@ def main():
     clock = pygame.time.Clock()
 
     grid = [
-        [1, 1, 1, 1, 1, 1, 1],
-        [1, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 1],
-        [1, 0, 0, 0, 0, 0, 1],
-        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 0, 0],
+        [1, 0, 0, 0, 1, 0, 0],
+        [1, 0, 2, 0, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 1, 1, 1],
+        [1, 0, 0, 0, 1, 0, 0],
+        [1, 0, 0, 0, 1, 0, 0],
+        [1, 1, 1, 1, 1, 0, 0],
     ]
 
     # Main loop
     running = True
     while running:
         dt = clock.tick(60) / 1000.0  # Delta time in seconds
-
-        # print(camera_pos)
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
@@ -258,19 +258,6 @@ def main():
         light_manager.upload_to_shader()
         glUniform3f(view_pos_loc, camera_pos.x, camera_pos.y, camera_pos.z)
 
-        bench.draw()
-
-        wall_count = 3
-        # for i in range(wall_count):
-        #     wall.position = glm.vec3((i * 1.6), 0, 0)
-        #     wall.draw()
-        #
-        # for i in range(wall_count):
-        #     model = glm.rotate(glm.mat4(1.0), 80.0, glm.vec3(0, 1, 0))
-        #     glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm.value_ptr(model))
-        #     wall.position = glm.vec3((i * 1.6), 0, 0)
-        # wall.draw()
-
         for entity in game.entities:
             entity.update(dt)
             entity.draw()
@@ -278,8 +265,8 @@ def main():
         # Replace grid loop to draw both horizontal and vertical walls at corners
         for i, row in enumerate(grid):
             for j, cell in enumerate(row):
+                pos = glm.vec3(j * 1.6, 0, i * 1.6)
                 if cell == 1:
-                    pos = glm.vec3(j * 1.6, 0, i * 1.6)
                     # horizontal wall if neighbor left/right or at top/bottom row
                     if (j > 0 and row[j-1] == 1) or (j < len(row)-1 and row[j+1] == 1) or i == 0 or i == len(grid)-1:
                         wall.position = pos
@@ -290,6 +277,19 @@ def main():
                         wall.position = pos
                         wall.rotation = 90.0
                         wall.draw()
+
+                if cell == 2:
+                    # Draw bench at this position
+                    bench.position = pos
+                    bench.draw()
+
+                if cell == 0 or cell == 2 or cell == 1:
+                    # Draw ground at this position
+                    ground.position = glm.vec3(pos.x, -1.0, pos.z)
+                    ground.draw()
+
+                    roof.position = glm.vec3(pos.x, 2.6, pos.z)
+                    roof.draw()
 
         # Swap buffers
         pygame.display.flip()
