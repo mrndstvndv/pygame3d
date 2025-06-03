@@ -115,6 +115,7 @@ def main():
         [1, 0, 0, 0, 0, 0, 1],
         [1, 0, 0, 0, 0, 0, 1],
         [1, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 1],
         [1, 1, 1, 1, 1, 1, 1],
     ]
 
@@ -274,34 +275,21 @@ def main():
             entity.update(dt)
             entity.draw()
 
-        for i in range(len(grid)):
-            for j in range(len(grid[i])):
-                if grid[i][j] == 1:
-                    # Start with identity matrix
-                    wall_model = glm.mat4(1.0)
-
-                    # First translate to position
-                    wall_model = glm.translate(
-                        wall_model, glm.vec3(j * 1.6, 0, i * 1.6)
-                    )
-
-                    # Then apply rotation around the wall's local origin
-                    if i > 0 and i < len(grid) - 1:
-                        if grid[i - 1][j] == 1 and grid[i + 1][j] == 1:
-                            wall_model = glm.rotate(
-                                wall_model, glm.radians(90.0), glm.vec3(0, 1, 0)
-                            )
-
-                    # Set the model matrix uniform for this specific wall
-                    glUniformMatrix4fv(
-                        model_loc, 1, GL_FALSE, glm.value_ptr(wall_model)
-                    )
-
-                    # Draw the wall (no need to set position again as it's in the model matrix)
-                    wall.position = glm.vec3(
-                        0, 0, 0
-                    )  # Use origin since position is in model matrix
-                    wall.draw()
+        # Replace grid loop to draw both horizontal and vertical walls at corners
+        for i, row in enumerate(grid):
+            for j, cell in enumerate(row):
+                if cell == 1:
+                    pos = glm.vec3(j * 1.6, 0, i * 1.6)
+                    # horizontal wall if neighbor left/right or at top/bottom row
+                    if (j > 0 and row[j-1] == 1) or (j < len(row)-1 and row[j+1] == 1) or i == 0 or i == len(grid)-1:
+                        wall.position = pos
+                        wall.rotation = 0.0
+                        wall.draw()
+                    # vertical wall if neighbor above/below or at left/right column
+                    if (i > 0 and grid[i-1][j] == 1) or (i < len(grid)-1 and grid[i+1][j] == 1) or j == 0 or j == len(row)-1:
+                        wall.position = pos
+                        wall.rotation = 90.0
+                        wall.draw()
 
         # Swap buffers
         pygame.display.flip()
