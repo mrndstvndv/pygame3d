@@ -51,13 +51,13 @@ def main():
     game = GameContext(shader_program)
 
     bench = Entity(game, "bench", Object("./assets/bench.obj", "./assets/bench.png"))
-    wall = Entity(game, "wall", Object("./assets/wall.obj", "./assets/wall.png"))
+    # wall = Entity(game, "wall", Object("./assets/wall.obj", "./assets/wall.png"))
     ground = Entity(
         game, "ground", Object("./assets/ground.obj", "./assets/ground.png")
     )
-    roof = Entity(
-        game, "roof", Object("./assets/roof_flat.obj", "./assets/roof_flat.png")
-    )
+    # roof = Entity(
+    #     game, "roof", Object("./assets/roof_flat.obj", "./assets/roof_flat.png")
+    # )
 
     # Get uniform locations
     model_loc = glGetUniformLocation(shader_program, "model")
@@ -110,6 +110,49 @@ def main():
     dungeon_generator.clean_grid()
 
     grid = dungeon_generator.grid
+
+    roof_offsets = []
+    ground_offsets = []
+    wall_offsets = []
+
+    # Draw the dungeon
+    for i, row in enumerate(grid):
+        for j, cell in enumerate(row):
+            pos = glm.vec3(j * 1.6, 0, i * 1.6)
+
+            if cell == 1:
+                # horizontal wall if neighbor left/right or at top/bottom row
+                if (
+                    (j > 0 and row[j - 1] == 1)
+                    or (j < len(row) - 1 and row[j + 1] == 1)
+                    or i == 0
+                    or i == len(grid) - 1
+                ):
+                    wall_offsets.append((pos.x, pos.y, pos.z))
+                    # wall.position = pos
+                    # # wall.rotation = 0.0
+                    # wall.draw()
+                # vertical wall if neighbor above/below or at left/right column
+                if (
+                    (i > 0 and grid[i - 1][j] == 1)
+                    or (i < len(grid) - 1 and grid[i + 1][j] == 1)
+                    or j == 0
+                    or j == len(row) - 1
+                ):
+                    wall_offsets.append((pos.x, pos.y, pos.z))
+                    # wall.rotation = 90.0
+                    # wall.draw()
+
+            if cell == 0 or cell == 2 or cell == 1:
+                pos = glm.vec3(pos.x, 0.0, pos.z)
+                roof_offsets.append((pos.x, 2.6, pos.z))
+
+                ground_offsets.append((pos.x, -1.0, pos.z))
+
+
+    roof_obj = Object("./assets/roof_flat.obj", "./assets/roof_flat.png", offsets=roof_offsets)
+    wall_obj = Object("./assets/wall.obj", "./assets/wall.png", offsets=wall_offsets)
+    ground_obj = Object("./assets/ground.obj", "./assets/ground.png", offsets=ground_offsets)
 
     # Main loop
     running = True
@@ -252,44 +295,48 @@ def main():
             entity.update(dt)
             entity.draw()
 
-        # Draw the dungeon
-        for i, row in enumerate(grid):
-            for j, cell in enumerate(row):
-                pos = glm.vec3(j * 1.6, 0, i * 1.6)
-                if cell == 1:
-                    # horizontal wall if neighbor left/right or at top/bottom row
-                    if (
-                        (j > 0 and row[j - 1] == 1)
-                        or (j < len(row) - 1 and row[j + 1] == 1)
-                        or i == 0
-                        or i == len(grid) - 1
-                    ):
-                        wall.position = pos
-                        wall.rotation = 0.0
-                        wall.draw()
-                    # vertical wall if neighbor above/below or at left/right column
-                    if (
-                        (i > 0 and grid[i - 1][j] == 1)
-                        or (i < len(grid) - 1 and grid[i + 1][j] == 1)
-                        or j == 0
-                        or j == len(row) - 1
-                    ):
-                        wall.position = pos
-                        wall.rotation = 90.0
-                        wall.draw()
+        roof_obj.draw()
+        ground_obj.draw()
+        wall_obj.draw()
 
-                if cell == 2:
-                    # Draw bench at this position
-                    bench.position = pos
-                    bench.draw()
-
-                if cell == 0 or cell == 2 or cell == 1:
-                    # Draw ground at this position
-                    ground.position = glm.vec3(pos.x, -1.0, pos.z)
-                    ground.draw()
-
-                    roof.position = glm.vec3(pos.x, 2.6, pos.z)
-                    roof.draw()
+        # # Draw the dungeon
+        # for i, row in enumerate(grid):
+        #     for j, cell in enumerate(row):
+        #         pos = glm.vec3(j * 1.6, 0, i * 1.6)
+        #         if cell == 1:
+        #             # horizontal wall if neighbor left/right or at top/bottom row
+        #             if (
+        #                 (j > 0 and row[j - 1] == 1)
+        #                 or (j < len(row) - 1 and row[j + 1] == 1)
+        #                 or i == 0
+        #                 or i == len(grid) - 1
+        #             ):
+        #                 wall.position = pos
+        #                 wall.rotation = 0.0
+        #                 wall.draw()
+        #             # vertical wall if neighbor above/below or at left/right column
+        #             if (
+        #                 (i > 0 and grid[i - 1][j] == 1)
+        #                 or (i < len(grid) - 1 and grid[i + 1][j] == 1)
+        #                 or j == 0
+        #                 or j == len(row) - 1
+        #             ):
+        #                 wall.position = pos
+        #                 wall.rotation = 90.0
+        #                 wall.draw()
+        #
+        #         if cell == 2:
+        #             # Draw bench at this position
+        #             bench.position = pos
+        #             bench.draw()
+        #
+        #         if cell == 0 or cell == 2 or cell == 1:
+        #             # Draw ground at this position
+        #             ground.position = glm.vec3(pos.x, -1.0, pos.z)
+        #             ground.draw()
+        #
+        #             roof.position = glm.vec3(pos.x, 2.6, pos.z)
+        #             roof.draw()
 
         # Swap buffers
         pygame.display.flip()

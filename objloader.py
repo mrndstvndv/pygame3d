@@ -6,7 +6,7 @@ import pygame
 
 
 class Object:
-    def __init__(self, object: str, texture: str, flip_texture=True):
+    def __init__(self, object: str, texture: str, flip_texture=True, offsets: list = []):
         self.vertices = []
         self.indices = []
         self.face_shape = None
@@ -14,6 +14,7 @@ class Object:
         self.flip = flip_texture
         self.index_count = 0
         self.texture_id = None
+        self.instanced_offsets = offsets  # Default offset for instancing
 
         if object:
             self.load_obj(object)
@@ -87,8 +88,12 @@ class Object:
                         for part in parts:
                             vals = part.split("/")
                             v_idx = int(vals[0]) - 1
-                            vt_idx = int(vals[1]) - 1 if len(vals) > 1 and vals[1] else 0
-                            vn_idx = int(vals[2]) - 1 if len(vals) > 2 and vals[2] else 0
+                            vt_idx = (
+                                int(vals[1]) - 1 if len(vals) > 1 and vals[1] else 0
+                            )
+                            vn_idx = (
+                                int(vals[2]) - 1 if len(vals) > 2 and vals[2] else 0
+                            )
 
                             key = (v_idx, vt_idx)
                             if key not in unique_verts:
@@ -113,8 +118,12 @@ class Object:
                         for part in parts:
                             vals = part.split("/")
                             v_idx = int(vals[0]) - 1
-                            vt_idx = int(vals[1]) - 1 if len(vals) > 1 and vals[1] else 0
-                            vn_idx = int(vals[2]) - 1 if len(vals) > 2 and vals[2] else 0
+                            vt_idx = (
+                                int(vals[1]) - 1 if len(vals) > 1 and vals[1] else 0
+                            )
+                            vn_idx = (
+                                int(vals[2]) - 1 if len(vals) > 2 and vals[2] else 0
+                            )
 
                             key = (v_idx, vt_idx)
                             if key not in unique_verts:
@@ -130,8 +139,12 @@ class Object:
                             quad_indices.append(unique_verts[key])
 
                         # Convert quad to two triangles (0,1,2) and (0,2,3)
-                        self.indices.extend([quad_indices[0], quad_indices[1], quad_indices[2]])
-                        self.indices.extend([quad_indices[0], quad_indices[2], quad_indices[3]])
+                        self.indices.extend(
+                            [quad_indices[0], quad_indices[1], quad_indices[2]]
+                        )
+                        self.indices.extend(
+                            [quad_indices[0], quad_indices[2], quad_indices[3]]
+                        )
 
                     else:
                         raise ValueError("Unsupported face format")
@@ -143,6 +156,7 @@ class Object:
     def _create_buffers(self):
         vertices = np.array(self.vertices, dtype=np.float32)
         indices = np.array(self.indices, dtype=np.uint32)
+
         self.index_count = len(indices)
 
         vao = glGenVertexArrays(1)
@@ -185,6 +199,19 @@ class Object:
             ctypes.c_void_p(5 * ctypes.sizeof(ctypes.c_float)),
         )
 
+        offsets = np.array(
+            self.instanced_offsets,
+            dtype=np.float32,
+        ).flatten()
+        instance_vbo = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, instance_vbo)
+        glBufferData(GL_ARRAY_BUFFER, offsets.nbytes, offsets, GL_STATIC_DRAW)
+
+        # Set up instanced offset attribute
+        glEnableVertexAttribArray(3)
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+        glVertexAttribDivisor(3, 1)  # This makes it instanced
+
         glBindVertexArray(0)
 
         self.vao = vao
@@ -195,7 +222,20 @@ class Object:
         if texture_id is not None:
             glBindTexture(GL_TEXTURE_2D, texture_id)
         glBindVertexArray(self.vao)
-        glDrawElements(GL_TRIANGLES, self.index_count, GL_UNSIGNED_INT, None)
+
+        if len(self.instanced_offsets) > 0 :
+            # Draw instances
+            glDrawElementsInstanced(
+                GL_TRIANGLES,
+                self.index_count,
+                GL_UNSIGNED_INT,
+                None,
+                len(self.instanced_offsets),  # Number of instances
+            )
+        else:
+            # Regular draw
+            glDrawElements(GL_TRIANGLES, self.index_count, GL_UNSIGNED_INT, None)
+
         glBindVertexArray(0)
         if texture_id is not None:
             glBindTexture(GL_TEXTURE_2D, 0)
