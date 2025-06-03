@@ -2,10 +2,12 @@
 # os.environ["SDL_VIDEO_X11_FORCE_EGL"] = "1"
 
 import os
+import random
 
 from objloader import Object
 from game import GameContext, Entity
 from lighting import Light, LightManager
+from generator.dungeon_generator import DungeonGenerator
 
 if os.environ.get("XDG_SESSION_TYPE") == "wayland":
     os.environ["SDL_VIDEODRIVER"] = "wayland"
@@ -50,8 +52,12 @@ def main():
 
     bench = Entity(game, "bench", Object("./assets/bench.obj", "./assets/bench.png"))
     wall = Entity(game, "wall", Object("./assets/wall.obj", "./assets/wall.png"))
-    ground = Entity(game, "ground", Object("./assets/ground.obj", "./assets/ground.png"))
-    roof = Entity(game, "roof", Object("./assets/roof_flat.obj", "./assets/roof_flat.png"))
+    ground = Entity(
+        game, "ground", Object("./assets/ground.obj", "./assets/ground.png")
+    )
+    roof = Entity(
+        game, "roof", Object("./assets/roof_flat.obj", "./assets/roof_flat.png")
+    )
 
     # Get uniform locations
     model_loc = glGetUniformLocation(shader_program, "model")
@@ -61,18 +67,6 @@ def main():
 
     # Initialize lighting system
     light_manager = LightManager(shader_program)
-
-    # Add multiple light sources
-    # Static light sources
-    # light_manager.add_light(
-    #     Light(position=(5.0, 5.0, 5.0), color=(1.0, 1.0, 1.0), intensity=2.0)
-    # )  # Main overhead light
-    # light_manager.add_light(
-    #     Light(position=(-3.0, 2.0, 3.0), color=(1.0, 0.8, 0.6), intensity=1.5)
-    # )  # Warm side light
-    # light_manager.add_light(
-    #     Light(position=(0.0, -1.0, -5.0), color=(0.6, 0.8, 1.0), intensity=1.0)
-    # )  # Cool ground light
 
     # Dynamic light that will follow the camera (like a flashlight)
     flashlight_index = len(light_manager.lights)
@@ -110,16 +104,12 @@ def main():
     rotation = 0.0
     clock = pygame.time.Clock()
 
-    grid = [
-        [1, 1, 1, 1, 1, 0, 0],
-        [1, 0, 0, 0, 1, 0, 0],
-        [1, 0, 2, 0, 1, 1, 1],
-        [1, 0, 0, 0, 0, 0, 0],
-        [1, 0, 0, 0, 1, 1, 1],
-        [1, 0, 0, 0, 1, 0, 0],
-        [1, 0, 0, 0, 1, 0, 0],
-        [1, 1, 1, 1, 1, 0, 0],
-    ]
+    # Generate dungeon
+    dungeon_generator = DungeonGenerator(width=60, height=50)
+    dungeon_generator.generate_dungeon()
+    dungeon_generator.clean_grid()
+
+    grid = dungeon_generator.grid
 
     # Main loop
     running = True
@@ -262,18 +252,28 @@ def main():
             entity.update(dt)
             entity.draw()
 
-        # Replace grid loop to draw both horizontal and vertical walls at corners
+        # Draw the dungeon
         for i, row in enumerate(grid):
             for j, cell in enumerate(row):
                 pos = glm.vec3(j * 1.6, 0, i * 1.6)
                 if cell == 1:
                     # horizontal wall if neighbor left/right or at top/bottom row
-                    if (j > 0 and row[j-1] == 1) or (j < len(row)-1 and row[j+1] == 1) or i == 0 or i == len(grid)-1:
+                    if (
+                        (j > 0 and row[j - 1] == 1)
+                        or (j < len(row) - 1 and row[j + 1] == 1)
+                        or i == 0
+                        or i == len(grid) - 1
+                    ):
                         wall.position = pos
                         wall.rotation = 0.0
                         wall.draw()
                     # vertical wall if neighbor above/below or at left/right column
-                    if (i > 0 and grid[i-1][j] == 1) or (i < len(grid)-1 and grid[i+1][j] == 1) or j == 0 or j == len(row)-1:
+                    if (
+                        (i > 0 and grid[i - 1][j] == 1)
+                        or (i < len(grid) - 1 and grid[i + 1][j] == 1)
+                        or j == 0
+                        or j == len(row) - 1
+                    ):
                         wall.position = pos
                         wall.rotation = 90.0
                         wall.draw()
