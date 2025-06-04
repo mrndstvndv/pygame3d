@@ -68,13 +68,34 @@ def main():
     # Initialize lighting system
     light_manager = LightManager(shader_program)
 
-    # Calculate center of the grid (60x50 grid with 1.6 spacing)
+    # Calculate center and corners of the grid (60x50 grid with 1.6 spacing)
     grid_center_x = (60 * 1.6) / 2
     grid_center_z = (50 * 1.6) / 2
+    
+    # Calculate corner positions
+    corner_height = 15.0
+    corner_intensity = 0
+    corner_color = (1.0, 1.0, 1.0)
+    
+    # Add corner lights
+    corner_light_indices = []
+    corner_positions = [
+        (0, corner_height, 0),  # Front left
+        (60 * 1.6, corner_height, 0),  # Front right
+        (0, corner_height, 50 * 1.6),  # Back left
+        (60 * 1.6, corner_height, 50 * 1.6)  # Back right
+    ]
+    
+    for pos in corner_positions:
+        corner_light_indices.append(len(light_manager.lights))
+        light_manager.add_light(
+            Light(position=pos, color=corner_color, intensity=corner_intensity)
+        )
 
-    # Add overhead light for better visibility (disabled by default)
+    # Add bright ambient light that illuminates the entire scene
+    ambient_light_index = len(light_manager.lights)
     light_manager.add_light(
-        Light(position=(grid_center_x, 20.0, grid_center_z), color=(1.0, 1.0, 1.0), intensity=0.0)
+        Light(position=(grid_center_x, 30.0, grid_center_z), color=(1.0, 1.0, 1.0), intensity=corner_intensity)
     )
 
     # Dynamic light that will follow the camera (like a flashlight)
@@ -83,21 +104,20 @@ def main():
         Light(position=(0.0, 0.0, 0.0), color=(1.0, 1.0, 0.8), intensity=3.0)
     )
 
-    print("=== Multiple Light Sources Demo ===")
+    print("=== Lighting Controls ===")
     print("Controls:")
     print("WASD - Move camera")
     print("Arrow Keys - Look around")
     print("SPACE - Fire bullet")
-    print("1 - Toggle overhead light")
-    print("2 - Toggle side light")
-    print("3 - Toggle ground light")
+    print("1 - Toggle all lights (except flashlight)")
     print("4 - Toggle flashlight")
     print("C - Cycle flashlight color")
+    print("5 - Toggle corner lights")
     print("ESC - Quit")
-    print("=====================================\n")
+    print("========================\n")
 
     # Create transformation matrices
-    projection = glm.perspective(glm.radians(45.0), 800.0 / 600.0, 0.1, 100.0)
+    projection = glm.perspective(glm.radians(45.0), 800.0 / 600.0, 0.1, 500.0)
 
     # Camera position and orientation
     camera_pos = glm.vec3(0.0, 0.5, 5.0)
@@ -215,39 +235,11 @@ def main():
 
                 # Light controls
                 if event.key == pygame.K_1:
-                    # Toggle overhead light intensity
-                    if light_manager.lights[0].intensity > 0:
-                        light_manager.update_light_intensity(0, 0.0)
-                        print("Overhead light OFF")
-                    else:
-                        light_manager.update_light_intensity(0, 50.0)
-                        print("Overhead light ON")
-
-                if event.key == pygame.K_2:
-                    # Toggle side light intensity
-                    if light_manager.lights[1].intensity > 0:
-                        light_manager.update_light_intensity(1, 50.0)
-                        print("Side light OFF")
-                    else:
-                        light_manager.update_light_intensity(1, 1.5)
-                        print("Side light ON")
-
-                if event.key == pygame.K_r:
-                    # Toggle roof visibility
-                    display_roof = not display_roof
-                    if display_roof:
-                        print("Roof ON")
-                    else:
-                        print("Roof OFF")
-
-                if event.key == pygame.K_3:
-                    # Toggle ground light intensity
-                    if light_manager.lights[2].intensity > 0:
-                        light_manager.update_light_intensity(2, 0.0)
-                        print("Ground light OFF")
-                    else:
-                        light_manager.update_light_intensity(2, 1.0)
-                        print("Ground light ON")
+                    new_intensity = 0.0 if corner_intensity > 0 else 50.0
+                    # Toggle corner lights
+                    for idx in corner_light_indices:
+                        light_manager.update_light_intensity(idx, new_intensity)
+                    light_manager.update_light_intensity(ambient_light_index, new_intensity)
 
                 if event.key == pygame.K_4:
                     # Toggle flashlight intensity
@@ -283,6 +275,14 @@ def main():
                             flashlight_index, (1.0, 1.0, 0.8)
                         )  # White/warm
                         print("Flashlight: WHITE")
+
+                if event.key == pygame.K_r:
+                    # Toggle roof visibility
+                    display_roof = not display_roof
+                    if display_roof:
+                        print("Roof ON")
+                    else:
+                        print("Roof OFF")
 
                 if event.key == pygame.K_z:
                     # Generate new dungeon

@@ -8,7 +8,7 @@ class DungeonGenerator:
         self.cell_size = 10
         self.min_room_size = 5
         self.max_room_size = 12
-        self.max_rooms = 10
+        self.max_rooms = 20
         self.rooms = []
         self.spawn = (0, 0)
         self.chests = []
@@ -44,7 +44,7 @@ class DungeonGenerator:
         for room in self.rooms:
             center_x = room[0] + room[2] // 2
             center_y = room[1] + room[3] // 2
-            if random.random() < 0.3:
+            if random.random() < 0.6:
                 self.grid[center_y][center_x] = 3
 
         self.spawn = (spawn_x, spawn_y)
