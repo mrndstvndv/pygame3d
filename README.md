@@ -1,5 +1,20 @@
 # CONTROLS
 
+## Installation
+
+1. Make sure you have Python 3.13 or higher installed
+2. Install the required dependencies:
+```bash
+pip install numpy>=2.2.5 pygame>=2.6.1 pyglm>=2.8.2 pyopengl>=3.1.9
+```
+
+## Usage
+
+Run the game:
+```bash
+python main.py
+```
+
 ## Camera Controls
 - WASD - Move camera
 - Arrow Keys - Look around
