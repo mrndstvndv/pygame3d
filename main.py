@@ -68,6 +68,15 @@ def main():
     # Initialize lighting system
     light_manager = LightManager(shader_program)
 
+    # Calculate center of the grid (60x50 grid with 1.6 spacing)
+    grid_center_x = (60 * 1.6) / 2
+    grid_center_z = (50 * 1.6) / 2
+
+    # Add overhead light for better visibility (disabled by default)
+    light_manager.add_light(
+        Light(position=(grid_center_x, 20.0, grid_center_z), color=(1.0, 1.0, 1.0), intensity=0.0)
+    )
+
     # Dynamic light that will follow the camera (like a flashlight)
     flashlight_index = len(light_manager.lights)
     light_manager.add_light(
@@ -183,7 +192,7 @@ def main():
             yaw -= camera_speed * 10 * dt
         if keys[pygame.K_RIGHT]:
             yaw += camera_speed * 10 * dt
-        if keys[pygame.K_u]:
+        if keys[pygame.K_SPACE]:
             camera_pos += camera_up * camera_speed * dt
         if keys[pygame.K_LSHIFT]:
             camera_pos -= camera_up * camera_speed * dt
@@ -198,12 +207,6 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
-                if event.key == pygame.K_SPACE:
-                    print("Bullet fired!")
-                    game.entities.append(
-                        Bullet(game, pos=glm.vec3(camera_pos), direction=direction)
-                    )
-
 
                 # Light controls
                 if event.key == pygame.K_1:
@@ -212,7 +215,7 @@ def main():
                         light_manager.update_light_intensity(0, 0.0)
                         print("Overhead light OFF")
                     else:
-                        light_manager.update_light_intensity(0, 2.0)
+                        light_manager.update_light_intensity(0, 10.0)
                         print("Overhead light ON")
 
                 if event.key == pygame.K_2:
@@ -275,6 +278,58 @@ def main():
                             flashlight_index, (1.0, 1.0, 0.8)
                         )  # White/warm
                         print("Flashlight: WHITE")
+
+                if event.key == pygame.K_z:
+                    # Generate new dungeon
+                    dungeon_generator = DungeonGenerator(width=60, height=50)  # Create new generator instance
+                    dungeon_generator.generate_dungeon()
+                    grid = dungeon_generator.grid
+
+                    # Clear existing offsets
+                    roof_offsets.clear()
+                    ground_offsets.clear()
+                    wall_offsets.clear()
+                    wall_vert_offsets.clear()
+
+                    # Draw the new dungeon
+                    for i, row in enumerate(grid):
+                        for j, cell in enumerate(row):
+                            pos = glm.vec3(j * 1.6, 0, i * 1.6)
+
+                            if cell == 1:
+                                # horizontal wall if neighbor left/right or at top/bottom row
+                                if (
+                                    (j > 0 and row[j - 1] == 1)
+                                    or (j < len(row) - 1 and row[j + 1] == 1)
+                                    or i == 0
+                                    or i == len(grid) - 1
+                                ):
+                                    wall_offsets.append((pos.x, pos.y, pos.z))
+                                # vertical wall if neighbor above/below or at left/right column
+                                if (
+                                    (i > 0 and grid[i - 1][j] == 1)
+                                    or (i < len(grid) - 1 and grid[i + 1][j] == 1)
+                                    or j == 0
+                                    or j == len(row) - 1
+                                ):
+                                    wall_vert_offsets.append((pos.x, pos.y, pos.z))
+
+                            if cell == 2:
+                                # Spawn point - only update bench position, not camera
+                                pos = glm.vec3(pos.x, 0.0, pos.z)
+                                bench.position = pos
+
+                            if cell == 0 or cell == 2 or cell == 1:
+                                pos = glm.vec3(pos.x, 0.0, pos.z)
+                                roof_offsets.append((pos.x, 2.5, pos.z))
+                                ground_offsets.append((pos.x, -1.0, pos.z))
+
+                    # Update objects with new offsets
+                    roof_obj = Object("./assets/roof_flat.obj", "./assets/roof_flat.png", offsets=roof_offsets)
+                    wall_obj = Object("./assets/wall.obj", "./assets/wall.png", offsets=wall_offsets)
+                    wall_vert_obj = Object("./assets/wall_vert.obj", "./assets/wall.png", offsets=wall_vert_offsets)
+                    ground_obj = Object("./assets/ground.obj", "./assets/ground.png", offsets=ground_offsets)
+                    print("Generated new dungeon!")
 
         # Limit pitch to avoid camera flipping
         if pitch > 89.0:
