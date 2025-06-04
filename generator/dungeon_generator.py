@@ -11,6 +11,7 @@ class DungeonGenerator:
         self.max_rooms = 10
         self.rooms = []
         self.spawn = (0, 0)
+        self.chests = []
         self.grid = [[1 for _ in range(width)] for _ in range(height)]
 
     def generate_room(self):
@@ -32,11 +33,19 @@ class DungeonGenerator:
                 self.rooms.append(room)
 
         first_room = self.rooms[0]
+
         # set spawn
         spawn_x = first_room[0] + first_room[2] // 2
         spawn_y = first_room[1] + first_room[3] // 2
 
         self.clean_grid()
+
+        # chance to place a chest in the center of the rooms
+        for room in self.rooms:
+            center_x = room[0] + room[2] // 2
+            center_y = room[1] + room[3] // 2
+            if random.random() < 0.3:
+                self.grid[center_y][center_x] = 3
 
         self.spawn = (spawn_x, spawn_y)
         self.grid[spawn_y][spawn_x] = 2  # Set spawn point
@@ -107,7 +116,6 @@ class DungeonGenerator:
 if __name__ == "__main__":
     generator = DungeonGenerator(80, 60)
     generator.generate_dungeon()
-    generator.clean_grid()
 
     for i in generator.grid:
         print("".join(" " if str(cell) == "0" else str(cell) for cell in i))

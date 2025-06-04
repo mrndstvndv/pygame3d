@@ -114,7 +114,7 @@ def main():
     clock = pygame.time.Clock()
 
     # Generate dungeon
-    dungeon_generator = DungeonGenerator(width=60, height=50)
+    dungeon_generator = DungeonGenerator(width=80, height=60)
     dungeon_generator.generate_dungeon()
 
     grid = dungeon_generator.grid
@@ -123,6 +123,7 @@ def main():
     ground_offsets = []
     wall_offsets = []
     wall_vert_offsets = []
+    chest_offsets = []
 
     print("Dungeon grid:")
     for row in grid:
@@ -160,17 +161,21 @@ def main():
                 bench.position = pos
                 camera_pos = glm.vec3(pos.x, 0.6, pos.z) 
 
-            if cell == 0 or cell == 2 or cell == 1:
+            if cell == 3:
                 pos = glm.vec3(pos.x, 0.0, pos.z)
-                roof_offsets.append((pos.x, 2.5, pos.z))
+                chest_offsets.append((pos.x, -0.6, pos.z))
 
-                ground_offsets.append((pos.x, -1.0, pos.z))
+            pos = glm.vec3(pos.x, 0.0, pos.z)
+            roof_offsets.append((pos.x, 2.5, pos.z))
+
+            ground_offsets.append((pos.x, -1.0, pos.z))
 
 
     roof_obj = Object("./assets/roof_flat.obj", "./assets/roof_flat.png", offsets=roof_offsets)
     wall_obj = Object("./assets/wall.obj", "./assets/wall.png", offsets=wall_offsets)
     wall_vert_obj = Object("./assets/wall_vert.obj", "./assets/wall.png", offsets=wall_vert_offsets)
     ground_obj = Object("./assets/ground.obj", "./assets/ground.png", offsets=ground_offsets)
+    chest_obj = Object("./assets/chest.obj", "./assets/chest.png", offsets=chest_offsets)
 
     display_roof = True
 
@@ -215,13 +220,13 @@ def main():
                         light_manager.update_light_intensity(0, 0.0)
                         print("Overhead light OFF")
                     else:
-                        light_manager.update_light_intensity(0, 10.0)
+                        light_manager.update_light_intensity(0, 50.0)
                         print("Overhead light ON")
 
                 if event.key == pygame.K_2:
                     # Toggle side light intensity
                     if light_manager.lights[1].intensity > 0:
-                        light_manager.update_light_intensity(1, 0.0)
+                        light_manager.update_light_intensity(1, 50.0)
                         print("Side light OFF")
                     else:
                         light_manager.update_light_intensity(1, 1.5)
@@ -281,7 +286,7 @@ def main():
 
                 if event.key == pygame.K_z:
                     # Generate new dungeon
-                    dungeon_generator = DungeonGenerator(width=60, height=50)  # Create new generator instance
+                    dungeon_generator = DungeonGenerator(width=80, height=60)  # Create new generator instance
                     dungeon_generator.generate_dungeon()
                     grid = dungeon_generator.grid
 
@@ -319,10 +324,14 @@ def main():
                                 pos = glm.vec3(pos.x, 0.0, pos.z)
                                 bench.position = pos
 
-                            if cell == 0 or cell == 2 or cell == 1:
+                            if cell == 3:
                                 pos = glm.vec3(pos.x, 0.0, pos.z)
-                                roof_offsets.append((pos.x, 2.5, pos.z))
-                                ground_offsets.append((pos.x, -1.0, pos.z))
+                                chest_offsets.append((pos.x, -0.6, pos.z))
+
+                            pos = glm.vec3(pos.x, 0.0, pos.z)
+                            roof_offsets.append((pos.x, 2.5, pos.z))
+
+                            ground_offsets.append((pos.x, -1.0, pos.z))
 
                     # Update objects with new offsets
                     roof_obj = Object("./assets/roof_flat.obj", "./assets/roof_flat.png", offsets=roof_offsets)
@@ -383,6 +392,7 @@ def main():
         ground_obj.draw()
         wall_obj.draw()
         wall_vert_obj.draw()
+        chest_obj.draw()
 
         bench.draw()
 
