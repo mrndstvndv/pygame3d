@@ -108,11 +108,7 @@ def main():
     print("Controls:")
     print("WASD - Move camera")
     print("Arrow Keys - Look around")
-    print("SPACE - Fire bullet")
-    print("1 - Toggle all lights (except flashlight)")
-    print("4 - Toggle flashlight")
-    print("C - Cycle flashlight color")
-    print("5 - Toggle corner lights")
+    print("1 - Toggle roof lights")
     print("ESC - Quit")
     print("========================\n")
 
@@ -253,19 +249,17 @@ def main():
                 if event.key == pygame.K_c:
                     # Cycle flashlight color
                     current_color = light_manager.lights[flashlight_index].color
-                    if current_color.x > 0.9:  # Currently white/warm
+                    if current_color.x > 0.9 and current_color.y > 0.9:  # Currently white/warm
                         light_manager.update_light_color(
                             flashlight_index, (1.0, 0.3, 0.3)
                         )  # Red
                         print("Flashlight: RED")
-                    elif (
-                        current_color.x > 0.9 and current_color.z < 0.5
-                    ):  # Currently red
+                    elif current_color.x > 0.9 and current_color.y < 0.5:  # Currently red
                         light_manager.update_light_color(
                             flashlight_index, (0.3, 1.0, 0.3)
                         )  # Green
                         print("Flashlight: GREEN")
-                    elif current_color.y > 0.9:  # Currently green
+                    elif current_color.y > 0.9 and current_color.x < 0.5:  # Currently green
                         light_manager.update_light_color(
                             flashlight_index, (0.3, 0.3, 1.0)
                         )  # Blue
